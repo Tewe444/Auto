@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Open World Car Game - Fixed Coins &amp; Obstacles</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Press+Start+2P', monospace, sans-serif;
+            touch-action: none;
+            user-select: none;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #111827;
+        }
+        .arcade-font {
+            font-family: 'Press+Start+2P', monospace, sans-serif;
+        }
+        .neon-box {
+            box-shadow: 0 0 25px rgba(107, 114, 128, 0.4), inset 0 0 15px rgba(107, 114, 128, 0.2);
+        }
+        .neon-text {
+            text-shadow: 0 0 10px rgba(156, 163, 175, 0.8), 0 0 20px rgba(107, 114, 128, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-white h-screen w-screen overflow-hidden flex flex-col items-center justify-center">
+
+    <div id="game-container" class="relative w-full h-full bg-gray-900 overflow-hidden flex flex-col">
+        
+        <!-- HUD Header -->
+        <div id="hud" class="hidden absolute top-0 left-0 w-full p-4 flex justify-between items-center z-20 bg-gray-900/90 backdrop-blur-sm border-b-2 border-gray-600/50 text-xs">
+            <div class="flex items-center space-x-4">
+                <div class="flex flex-col space-y-1">
+                    <span class="text-gray-400 text-[9px]">TANK / FUEL</span>
+                    <div class="w-28 sm:w-36 bg-gray-800 h-3 rounded-full border border-gray-600/50 overflow-hidden">
+                        <div id="fuel-bar" class="bg-gray-400 h-full w-full transition-all duration-200"></div>
+                    </div>
+                </div>
+                <div class="hidden sm:flex flex-col space-y-1">
+                    <span class="text-gray-300 text-[9px]">DRIFT COMBO</span>
+                    <span id="drift-val" class="text-xs text-gray-300">0 PTS</span>
+                </div>
+            </div>
+            <div class="flex flex-col items-center">
+                <span class="text-gray-300 text-[9px]">GELD</span>
+                <span id="money-val" class="text-sm text-gray-200">$0</span>
+            </div>
+            <div class="flex flex-col items-end">
+                <span class="text-gray-400 text-[9px]">GESCHW.</span>
+                <span id="speed-val" class="text-sm text-gray-200">0 KM/H</span>
+            </div>
+        </div>
+
+        <!-- Notification Banner -->
+        <div id="notification" class="hidden absolute top-20 left-1/2 -translate-x-1/2 bg-gray-950/90 border-2 border-gray-500 text-gray-200 px-4 py-2 rounded-lg text-xs z-30 neon-text text-center animate-pulse">
+            Nachricht
+        </div>
+
+        <!-- Canvas for Open World Rendering -->
+        <canvas id="gameCanvas" class="w-full h-full block bg-gray-800"></canvas>
+
+        <!-- Start Screen Overlay -->
+        <div id="start-screen" class="absolute inset-0 bg-gray-950/95 flex flex-col items-center justify-center p-6 z-40 text-center">
+            <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-800/25 via-transparent to-transparent pointer-events-none"></div>
+            <h1 class="text-2xl sm:text-4xl text-gray-200 neon-text mb-3 leading-relaxed">GRAUE OPEN WORLD</h1>
+            <p class="text-xs text-gray-400 mb-6 leading-relaxed max-w-sm">Sammle graue Kreise ein, fahre durch die Stadt mit Gebäuden und wenigen grünen Dekors!</p>
+            
+            <div class="bg-gray-900 border-2 border-gray-700 p-4 rounded-lg mb-6 text-[10px] text-gray-300 space-y-2 text-left w-full max-w-sm">
+                <p class="text-gray-200 font-bold mb-1">STEUERUNG:</p>
+                <p>↑ / W : Gas geben</p>
+                <p>↓ / S / SPACE : Handbremse / Driften &amp; Drehen</p>
+                <p>← / A &amp; → / D : Lenken &amp; Spin-Richtung</p>
+            </div>
+
+            <button id="start-btn" class="w-full max-w-sm py-4 bg-gray-700 hover:bg-gray-600 active:scale-95 text-white font-bold rounded-lg border-b-4 border-gray-900 transition shadow-lg arcade-font text-sm">
+                SPIEL STARTEN
+            </button>
+        </div>
+
+        <!-- Game Over Screen Overlay -->
+        <div id="gameover-screen" class="hidden absolute inset-0 bg-gray-950/95 flex flex-col items-center justify-center p-6 z-40 text-center">
+            <h2 class="text-2xl text-red-500 neon-text mb-2">GAME OVER</h2>
+            <p id="gameover-reason" class="text-xs text-gray-400 mb-6">Dein Tank ist leer.</p>
+            
+            <button id="restart-btn" class="w-full max-w-xs py-4 bg-gray-700 hover:bg-gray-600 active:scale-95 text-white font-bold rounded-lg border-b-4 border-gray-900 transition shadow-lg arcade-font text-sm">
+                NEU STARTEN
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('gameover-screen');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const hud = document.getElementById('hud');
+        const fuelBar = document.getElementById('fuel-bar');
+        const moneyVal = document.getElementById('money-val');
+        const speedVal = document.getElementById('speed-val');
+        const driftVal = document.getElementById('drift-val');
+        const notification = document.getElementById('notification');
+        const gameOverReason = document.getElementById('gameover-reason');
+
+        let audioCtx = null;
+        let engineOsc = null;
+        let engineGain = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function startEngineSound() {
+            if (!audioCtx) return;
+            try {
+                if (engineOsc) stopEngineSound();
+                engineOsc = audioCtx.createOscillator();
+                engineGain = audioCtx.createGain();
+                
+                engineOsc.type = 'sawtooth';
+                engineOsc.frequency.setValueAtTime(50, audioCtx.currentTime);
+                
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(250, audioCtx.currentTime);
+
+                engineGain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+
+                engineOsc.connect(filter);
+                filter.connect(engineGain);
+                engineGain.connect(audioCtx.destination);
+                
+                engineOsc.start();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function updateEnginePitch(speedRatio) {
+            if (engineOsc && audioCtx) {
+                engineOsc.frequency.setTargetAtTime(40 + speedRatio * 150, audioCtx.currentTime, 0.1);
+            }
+        }
+
+        function stopEngineSound() {
+            if (engineOsc) {
+                try {
+                    engineOsc.stop();
+                    engineOsc.disconnect();
+                } catch (e) {}
+                engineOsc = null;
+            }
+        }
+
+        function playCashSound() {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(554.37, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            } catch(e){}
+        }
+
+        const WORLD_WIDTH = 5000;
+        const WORLD_HEIGHT = 5000;
+        
+        let gameState = 'START';
+        let money = 200;
+        let fuel = 100;
+        let currentDriftPoints = 0;
+        let totalDriftScore = 0;
+
+        const player = {
+            x: WORLD_WIDTH / 2,
+            y: WORLD_HEIGHT / 2,
+            width: 38,
+            height: 70,
+            angle: 0,           
+            velocityAngle: 0,   
+            spinRate: 0,        
+            speed: 0,
+            maxSpeed: 11.5,
+            accel: 0.18,
+            friction: 0.04,
+            driftFactor: 0.985,
+            color: '#9ca3af'
+        };
+
+        let smokeParticles = [];
+        let cashPickups = [];
+        let obstacles = [];
+        let greenDecos = [];
+        let gasStations = [];
+
+        const keys = { up: false, down: false, left: false, right: false, drift: false };
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = true;
+            if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = true;
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+            if (e.key === ' ' || e.code === 'Space') {
+                keys.drift = true;
+                e.preventDefault();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = false;
+            if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = false;
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+            if (e.key === ' ' || e.code === 'Space') keys.drift = false;
+        });
+
+        function generateWorldItems() {
+            cashPickups = [];
+            obstacles = [];
+            greenDecos = [];
+            gasStations = [];
+
+            // Spawn gray circle coin pickups (no text)
+            for (let i = 0; i < 45; i++) {
+                cashPickups.push({
+                    x: Math.random() * (WORLD_WIDTH - 400) + 200,
+                    y: Math.random() * (WORLD_HEIGHT - 400) + 200,
+                    collected: false
+                });
+            }
+
+            // Spawn old buildings/obstacles back in town
+            for (let i = 0; i < 30; i++) {
+                let ox = Math.random() * (WORLD_WIDTH - 600) + 300;
+                let oy = Math.random() * (WORLD_HEIGHT - 600) + 300;
+                if (Math.hypot(ox - WORLD_WIDTH/2, oy - WORLD_HEIGHT/2) > 400) {
+                    obstacles.push({
+                        x: ox,
+                        y: oy,
+                        width: Math.random() * 120 + 80,
+                        height: Math.random() * 120 + 80
+                    });
+                }
+            }
+
+            // Spawn only a few green obstacles (pure decoration, NO bounce)
+            for (let i = 0; i < 8; i++) {
+                let gx = Math.random() * (WORLD_WIDTH - 600) + 300;
+                let gy = Math.random() * (WORLD_HEIGHT - 600) + 300;
+                greenDecos.push({
+                    x: gx,
+                    y: gy,
+                    width: Math.random() * 80 + 60,
+                    height: Math.random() * 80 + 60
+                });
+            }
+
+            gasStations.push({ x: 1200, y: 1200, width: 140, height: 100 });
+            gasStations.push({ x: WORLD_WIDTH - 1400, y: WORLD_HEIGHT - 1400, width: 140, height: 100 });
+        }
+
+        function showNotification(text) {
+            notification.innerText = text;
+            notification.classList.remove('hidden');
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 2500);
+        }
+
+        function startGame() {
+            initAudio();
+            startEngineSound();
+            generateWorldItems();
+            money = 200;
+            fuel = 100;
+            currentDriftPoints = 0;
+            totalDriftScore = 0;
+            player.x = WORLD_WIDTH / 2;
+            player.y = WORLD_HEIGHT / 2;
+            player.speed = 0;
+            player.angle = 0;
+            player.velocityAngle = 0;
+            player.spinRate = 0;
+
+            startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            hud.classList.remove('hidden');
+            gameState = 'PLAYING';
+        }
+
+        function triggerGameOver(reason) {
+            gameState = 'GAMEOVER';
+            stopEngineSound();
+            hud.classList.add('hidden');
+            gameOverReason.innerText = reason;
+            gameOverScreen.classList.remove('hidden');
+        }
+
+        function updateGame() {
+            if (gameState !== 'PLAYING') return;
+
+            if (Math.abs(player.speed) > 0.2) {
+                fuel -= 0.008;
+                if (fuel <= 0) {
+                    fuel = 0;
+                    triggerGameOver('Dein Tank ist leer!');
+                }
+            }
+
+            // Acceleration & Braking
+            if (keys.up) {
+                player.speed += player.accel;
+                if (player.speed > player.maxSpeed) player.speed = player.maxSpeed;
+            } else if (keys.down || keys.drift) {
+                player.speed -= player.accel * 1.2;
+                if (player.speed < -player.maxSpeed / 3) player.speed = -player.maxSpeed / 3;
+            } else {
+                if (player.speed > 0) player.speed -= player.friction;
+                if (player.speed < 0) player.speed += player.friction;
+                if (Math.abs(player.speed) < 0.1) player.speed = 0;
+            }
+
+            // Steering, Drifting & Wide Radius Curve Physics
+            if (Math.abs(player.speed) > 0.4) {
+                let steeringSpeed = 0.038 * (Math.abs(player.speed) / player.maxSpeed);
+                
+                if (keys.left) {
+                    player.angle -= steeringSpeed;
+                    player.spinRate -= 0.006;
+                }
+                if (keys.right) {
+                    player.angle += steeringSpeed;
+                    player.spinRate += 0.006;
+                }
+
+                if (keys.drift) {
+                    player.driftFactor = 0.992; // Very high inertia for wide, smooth arcs
+                    if (keys.left || keys.right) {
+                        player.spinRate += (keys.left ? -0.02 : 0.02);
+                    }
+                } else {
+                    player.driftFactor = 0.95;
+                    player.spinRate *= 0.92;
+                }
+
+                player.spinRate = Math.max(-0.12, Math.min(0.12, player.spinRate));
+                player.angle += player.spinRate;
+
+                let angleDiff = player.angle - player.velocityAngle;
+                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                
+                player.velocityAngle += angleDiff * (1 - player.driftFactor);
+
+                let driftSlip = Math.abs(angleDiff) + Math.abs(player.spinRate);
+                if (driftSlip > 0.2 && Math.abs(player.speed) > 3) {
+                    let earned = Math.floor(Math.abs(player.speed) * driftSlip * 3);
+                    currentDriftPoints += earned;
+                    totalDriftScore += earned;
+
+                    smokeParticles.push({
+                        x: player.x - Math.sin(player.angle) * 25,
+                        y: player.y + Math.cos(player.angle) * 25,
+                        size: Math.random() * 8 + 8,
+                        alpha: 0.7,
+                        life: 30
+                    });
+                } else if (currentDriftPoints > 50) {
+                    let cashBonus = Math.floor(currentDriftPoints / 90);
+                    if (cashBonus > 0) {
+                        money += cashBonus;
+                        playCashSound();
+                        showNotification(`Spin/Drift Bonus! +$${cashBonus}`);
+                    }
+                    currentDriftPoints = 0;
+                } else {
+                    currentDriftPoints = 0;
+                }
+            } else {
+                player.velocityAngle = player.angle;
+                player.spinRate *= 0.8;
+                currentDriftPoints = 0;
+            }
+
+            let nextX = player.x + Math.sin(player.velocityAngle) * player.speed;
+        let nextY = player.y - Math.cos(player.velocityAngle) * player.speed;
+
+        // Collision Check for Obstacles and Green Decos
+        let collided = false;
+        let hitObject = null;
+
+        // Check against old buildings/obstacles
+        for (let obs of obstacles) {
+            if (nextX > obs.x - player.width/2 && nextX < obs.x + obs.width + player.width/2 &&
+                nextY > obs.y - player.height/2 && nextY < obs.y + obs.height + player.height/2) {
+                collided = true;
+                hitObject = obs;
+                break;
+            }
+        }
+
+        // Check against green decorations
+        if (!collided) {
+            for (let dec of greenDecos) {
+                if (nextX > dec.x - player.width/2 && nextX < dec.x + dec.width + player.width/2 &&
+                    nextY > dec.y - player.height/2 && nextY < dec.y + dec.height + player.height/2) {
+                    collided = true;
+                    hitObject = dec;
+                    break;
+                }
+            }
+        }
+
+        if (collided) {
+            // Bounce effect: reverse speed and reduce it
+            player.speed = -player.speed * 0.4;
+            // Push player slightly back to prevent getting stuck inside
+            nextX = player.x;
+            nextY = player.y;
+            showNotification('Kollision!');
+        }
+
+        // Gas Station
+        for (let gs of gasStations) {
+                let dist = Math.hypot(nextX - (gs.x + gs.width/2), nextY - (gs.y + gs.height/2));
+                if (dist < 80) {
+                    if (fuel < 95 && money >= 25) {
+                        money -= 25;
+                        fuel = 100;
+                        playCashSound();
+                        showNotification('Vollgetankt! (-$25)');
+                    }
+                }
+            }
+
+            // Coin Pickups (Gray Circles)
+            for (let cp of cashPickups) {
+                if (!cp.collected) {
+                    let dist = Math.hypot(nextX - cp.x, nextY - cp.y);
+                    if (dist < 40) {
+                        cp.collected = true;
+                        money += 75;
+                        playCashSound();
+                        showNotification('+$75 eingesammelt!');
+                    }
+                }
+            }
+
+            // Smoke Particles
+            for (let i = smokeParticles.length - 1; i >= 0; i--) {
+                let p = smokeParticles[i];
+                p.life--;
+                p.size += 0.4;
+                p.alpha -= 0.02;
+                if (p.life <= 0 || p.alpha <= 0) {
+                    smokeParticles.splice(i, 1);
+                }
+            }
+
+            player.x = nextX;
+            player.y = nextY;
+
+            // World Borders Wrap
+            if (player.x < 0) player.x = WORLD_WIDTH;
+            if (player.x > WORLD_WIDTH) player.x = 0;
+            if (player.y < 0) player.y = WORLD_HEIGHT;
+            if (player.y > WORLD_HEIGHT) player.y = 0;
+
+            updateEnginePitch(Math.abs(player.speed) / player.maxSpeed);
+
+            fuelBar.style.width = fuel + '%';
+            moneyVal.innerText = '$' + money;
+            speedVal.innerText = Math.floor(Math.abs(player.speed) * 16) + ' KM/H';
+            driftVal.innerText = currentDriftPoints + ' PTS';
+        }
+
+        function renderGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            let camX = canvas.width / 2 - player.x;
+            let camY = canvas.height / 2 - player.y;
+            ctx.translate(camX, camY);
+
+            // Gray Asphalt Background
+            ctx.fillStyle = '#1f2937';
+            ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+            // Grid Lines
+            ctx.strokeStyle = '#374151';
+            ctx.lineWidth = 2;
+            const gridSize = 400;
+            for (let x = 0; x <= WORLD_WIDTH; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, WORLD_HEIGHT);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= WORLD_HEIGHT; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(WORLD_WIDTH, y);
+                ctx.stroke();
+            }
+
+            // Gas Stations
+            for (let gs of gasStations) {
+                ctx.fillStyle = '#4b5563';
+                ctx.fillRect(gs.x, gs.y, gs.width, gs.height);
+                ctx.fillStyle = '#f3f4f6';
+                ctx.font = '12px sans-serif';
+                ctx.fillText('TANKSTELLE', gs.x + 15, gs.y + 55);
+            }
+
+            // Old Building Obstacles
+            for (let obs of obstacles) {
+                ctx.fillStyle = '#374151';
+                ctx.strokeStyle = '#4b5563';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.roundRect(obs.x, obs.y, obs.width, obs.height, 6);
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            // Few Green Decorations (No bounce)
+            for (let dec of greenDecos) {
+                ctx.fillStyle = '#065f46';
+                ctx.strokeStyle = '#10b981';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.roundRect(dec.x, dec.y, dec.width, dec.height, 8);
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            // Coin Pickups (Pure Gray Circles)
+            for (let cp of cashPickups) {
+                if (!cp.collected) {
+                    ctx.save();
+                    ctx.translate(cp.x, cp.y);
+                    ctx.fillStyle = '#9ca3af';
+                    ctx.shadowColor = '#d1d5db';
+                    ctx.shadowBlur = 10;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 14, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            // Smoke Particles
+            for (let p of smokeParticles) {
+                ctx.fillStyle = `rgba(150, 150, 150, ${p.alpha})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Player Car
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.rotate(player.angle);
+
+            ctx.shadowColor = '#9ca3af';
+            ctx.shadowBlur = 15;
+            ctx.fillStyle = player.color;
+            ctx.beginPath();
+            ctx.roundRect(-player.width / 2, -player.height / 2, player.width, player.height, 8);
+            ctx.fill();
+
+            // Windshield
+            ctx.fillStyle = '#111827';
+            ctx.fillRect(-player.width / 2 + 5, -player.height / 4, player.width - 10, player.height / 2.5);
+
+            ctx.restore();
+
+            ctx.restore();
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function gameLoop() {
+            updateGame();
+            renderGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(err => {});
+            }
+            startGame();
+        });
+
+        restartBtn.addEventListener('click', startGame);
+
+        renderGame();
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
