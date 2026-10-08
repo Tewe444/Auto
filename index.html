@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2D Open World Car Game - Fixed Coins &amp; Obstacles</title>
+    <title>2D Open World Car Game - Running Exploding Enemies</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
@@ -20,73 +20,72 @@
             font-family: 'Press+Start+2P', monospace, sans-serif;
         }
         .neon-box {
-            box-shadow: 0 0 25px rgba(107, 114, 128, 0.4), inset 0 0 15px rgba(107, 114, 128, 0.2);
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.4), inset 0 0 15px rgba(56, 189, 248, 0.2);
         }
         .neon-text {
-            text-shadow: 0 0 10px rgba(156, 163, 175, 0.8), 0 0 20px rgba(107, 114, 128, 0.5);
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.8), 0 0 20px rgba(56, 189, 248, 0.5);
         }
     </style>
 </head>
 <body class="bg-gray-950 text-white h-screen w-screen overflow-hidden flex flex-col items-center justify-center">
 
-    <div id="game-container" class="relative w-full h-full bg-gray-900 overflow-hidden flex flex-col">
+    <div id="game-container" class="relative w-full h-full bg-slate-900 overflow-hidden flex flex-col">
         
         <!-- HUD Header -->
-        <div id="hud" class="hidden absolute top-0 left-0 w-full p-4 flex justify-between items-center z-20 bg-gray-900/90 backdrop-blur-sm border-b-2 border-gray-600/50 text-xs">
-            <div class="flex items-center space-x-4">
+        <div id="hud" class="hidden absolute top-0 left-0 w-full p-4 flex justify-between items-center z-20 bg-gray-900/90 backdrop-blur-sm border-b-2 border-cyan-500/50 text-xs">
+            <div class="flex items-center space-x-6">
                 <div class="flex flex-col space-y-1">
-                    <span class="text-gray-400 text-[9px]">TANK / FUEL</span>
-                    <div class="w-28 sm:w-36 bg-gray-800 h-3 rounded-full border border-gray-600/50 overflow-hidden">
-                        <div id="fuel-bar" class="bg-gray-400 h-full w-full transition-all duration-200"></div>
-                    </div>
+                    <span class="text-yellow-400 text-[9px]">DRIFT SKILL-PUNKTE</span>
+                    <span id="skill-val" class="text-xs text-yellow-300">0 / 100</span>
                 </div>
-                <div class="hidden sm:flex flex-col space-y-1">
-                    <span class="text-gray-300 text-[9px]">DRIFT COMBO</span>
-                    <span id="drift-val" class="text-xs text-gray-300">0 PTS</span>
+                <div class="flex flex-col space-y-1">
+                    <span class="text-cyan-400 text-[9px]">BOOST</span>
+                    <span id="boost-val" class="text-xs text-cyan-300">BEREIT</span>
                 </div>
             </div>
             <div class="flex flex-col items-center">
-                <span class="text-gray-300 text-[9px]">GELD</span>
-                <span id="money-val" class="text-sm text-gray-200">$0</span>
+                <span class="text-emerald-400 text-[9px]">GELD</span>
+                <span id="money-val" class="text-sm text-emerald-300">$0</span>
             </div>
             <div class="flex flex-col items-end">
                 <span class="text-gray-400 text-[9px]">GESCHW.</span>
-                <span id="speed-val" class="text-sm text-gray-200">0 KM/H</span>
+                <span id="speed-val" class="text-sm text-cyan-300">0 KM/H</span>
             </div>
         </div>
 
         <!-- Notification Banner -->
-        <div id="notification" class="hidden absolute top-20 left-1/2 -translate-x-1/2 bg-gray-950/90 border-2 border-gray-500 text-gray-200 px-4 py-2 rounded-lg text-xs z-30 neon-text text-center animate-pulse">
+        <div id="notification" class="hidden absolute top-20 left-1/2 -translate-x-1/2 bg-gray-950/90 border-2 border-cyan-500 text-cyan-300 px-4 py-2 rounded-lg text-xs z-30 neon-text text-center animate-pulse">
             Nachricht
         </div>
 
         <!-- Canvas for Open World Rendering -->
-        <canvas id="gameCanvas" class="w-full h-full block bg-gray-800"></canvas>
+        <canvas id="gameCanvas" class="w-full h-full block bg-slate-900"></canvas>
 
         <!-- Start Screen Overlay -->
         <div id="start-screen" class="absolute inset-0 bg-gray-950/95 flex flex-col items-center justify-center p-6 z-40 text-center">
-            <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-800/25 via-transparent to-transparent pointer-events-none"></div>
-            <h1 class="text-2xl sm:text-4xl text-gray-200 neon-text mb-3 leading-relaxed">GRAUE OPEN WORLD</h1>
-            <p class="text-xs text-gray-400 mb-6 leading-relaxed max-w-sm">Sammle graue Kreise ein, fahre durch die Stadt mit Gebäuden und wenigen grünen Dekors!</p>
+            <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-900/20 via-transparent to-transparent pointer-events-none"></div>
+            <h1 class="text-2xl sm:text-4xl text-cyan-400 neon-text mb-3 leading-relaxed">RUNNING ENEMIES &amp; BLUE CIRCLES</h1>
+            <p class="text-xs text-gray-300 mb-6 leading-relaxed max-w-sm">Verfolge die roten Gegner, bringe sie zum Explodieren, stoße die blauen Kreise und sammle Geld!</p>
             
-            <div class="bg-gray-900 border-2 border-gray-700 p-4 rounded-lg mb-6 text-[10px] text-gray-300 space-y-2 text-left w-full max-w-sm">
-                <p class="text-gray-200 font-bold mb-1">STEUERUNG:</p>
+            <div class="bg-gray-900 border-2 border-cyan-500/50 p-4 rounded-lg mb-6 text-[10px] text-gray-300 space-y-2 text-left w-full max-w-sm neon-box">
+                <p class="text-cyan-400 font-bold mb-1">STEUERUNG:</p>
                 <p>↑ / W : Gas geben</p>
-                <p>↓ / S / SPACE : Handbremse / Driften &amp; Drehen</p>
-                <p>← / A &amp; → / D : Lenken &amp; Spin-Richtung</p>
+                <p>↓ / S / SPACE : Bremsen / Handbremse</p>
+                <p>← / A &amp; → / D : Lenken &amp; Driften (mind. 1 Sekunde)</p>
+                <p>SHIFT : Turbo-Boost aktivieren (bei 100 Punkten)</p>
             </div>
 
-            <button id="start-btn" class="w-full max-w-sm py-4 bg-gray-700 hover:bg-gray-600 active:scale-95 text-white font-bold rounded-lg border-b-4 border-gray-900 transition shadow-lg arcade-font text-sm">
+            <button id="start-btn" class="w-full max-w-sm py-4 bg-cyan-600 hover:bg-cyan-500 active:scale-95 text-white font-bold rounded-lg border-b-4 border-cyan-900 transition shadow-lg arcade-font text-sm">
                 SPIEL STARTEN
             </button>
         </div>
 
         <!-- Game Over Screen Overlay -->
         <div id="gameover-screen" class="hidden absolute inset-0 bg-gray-950/95 flex flex-col items-center justify-center p-6 z-40 text-center">
-            <h2 class="text-2xl text-red-500 neon-text mb-2">GAME OVER</h2>
-            <p id="gameover-reason" class="text-xs text-gray-400 mb-6">Dein Tank ist leer.</p>
+            <h2 id="gameover-title" class="text-2xl text-red-500 neon-text mb-2">GAME OVER</h2>
+            <p id="gameover-reason" class="text-xs text-gray-400 mb-6">Dein Auto wurde zerstört.</p>
             
-            <button id="restart-btn" class="w-full max-w-xs py-4 bg-gray-700 hover:bg-gray-600 active:scale-95 text-white font-bold rounded-lg border-b-4 border-gray-900 transition shadow-lg arcade-font text-sm">
+            <button id="restart-btn" class="w-full max-w-xs py-4 bg-cyan-600 hover:bg-cyan-500 active:scale-95 text-white font-bold rounded-lg border-b-4 border-cyan-900 transition shadow-lg arcade-font text-sm">
                 NEU STARTEN
             </button>
         </div>
@@ -101,12 +100,13 @@
         const startBtn = document.getElementById('start-btn');
         const restartBtn = document.getElementById('restart-btn');
         const hud = document.getElementById('hud');
-        const fuelBar = document.getElementById('fuel-bar');
+        const skillVal = document.getElementById('skill-val');
+        const boostVal = document.getElementById('boost-val');
         const moneyVal = document.getElementById('money-val');
         const speedVal = document.getElementById('speed-val');
-        const driftVal = document.getElementById('drift-val');
         const notification = document.getElementById('notification');
         const gameOverReason = document.getElementById('gameover-reason');
+        const gameOverTitle = document.getElementById('gameover-title');
 
         let audioCtx = null;
         let engineOsc = null;
@@ -180,14 +180,65 @@
             } catch(e){}
         }
 
-        const WORLD_WIDTH = 5000;
-        const WORLD_HEIGHT = 5000;
+        function playBoostSound() {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.4);
+                gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.5);
+            } catch(e){}
+        }
+
+        function playExplosionSound() {
+            if (!audioCtx) return;
+            try {
+                const bufferSize = audioCtx.sampleRate * 1.5;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(300, audioCtx.currentTime);
+                filter.frequency.linearRampToValueAtTime(50, audioCtx.currentTime + 1.5);
+
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                noise.start();
+            } catch(e){}
+        }
+
+        const WORLD_WIDTH = 15000;
+        const WORLD_HEIGHT = 15000;
         
         let gameState = 'START';
         let money = 200;
-        let fuel = 100;
-        let currentDriftPoints = 0;
-        let totalDriftScore = 0;
+        let damage = 0;
+        let skillPoints = 0;
+        let boostActive = false;
+        let boostTimer = 0;
+        let collisionCooldown = 0;
+        let currentDriftTicks = 0;
+        let wasDrifting = false;
 
         const player = {
             x: WORLD_WIDTH / 2,
@@ -202,22 +253,30 @@
             accel: 0.18,
             friction: 0.04,
             driftFactor: 0.985,
-            color: '#9ca3af'
+            color: '#38bdf8'
         };
 
         let smokeParticles = [];
+        let sparkParticles = [];
+        let explosionParticles = [];
         let cashPickups = [];
         let obstacles = [];
-        let greenDecos = [];
-        let gasStations = [];
+        let repairStations = [];
+        let rollingCircles = [];
+        let runningEnemies = []; // Fliehende Gegner die explodieren
 
-        const keys = { up: false, down: false, left: false, right: false, drift: false };
+        const keys = { up: false, down: false, left: false, right: false, drift: false, shift: false };
 
         window.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = true;
             if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = true;
             if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
             if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+            if (e.key === 'Shift') {
+                keys.shift = true;
+                tryActivateBoost();
+                e.preventDefault();
+            }
             if (e.key === ' ' || e.code === 'Space') {
                 keys.drift = true;
                 e.preventDefault();
@@ -229,52 +288,88 @@
             if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = false;
             if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
             if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+            if (e.key === 'Shift') keys.shift = false;
             if (e.key === ' ' || e.code === 'Space') keys.drift = false;
         });
+
+        function tryActivateBoost() {
+            if (gameState !== 'PLAYING') return;
+            if (skillPoints >= 100 && !boostActive) {
+                skillPoints = 0;
+                boostActive = true;
+                boostTimer = 180;
+                playBoostSound();
+                showNotification('TURBO BOOST AKTIVIERT!');
+            }
+        }
 
         function generateWorldItems() {
             cashPickups = [];
             obstacles = [];
-            greenDecos = [];
-            gasStations = [];
+            repairStations = [];
+            rollingCircles = [];
+            runningEnemies = [];
 
-            // Spawn gray circle coin pickups (no text)
-            for (let i = 0; i < 45; i++) {
+            for (let i = 0; i < 200; i++) {
                 cashPickups.push({
-                    x: Math.random() * (WORLD_WIDTH - 400) + 200,
-                    y: Math.random() * (WORLD_HEIGHT - 400) + 200,
+                    x: Math.random() * (WORLD_WIDTH - 600) + 300,
+                    y: Math.random() * (WORLD_HEIGHT - 600) + 300,
                     collected: false
                 });
             }
 
-            // Spawn old buildings/obstacles back in town
-            for (let i = 0; i < 30; i++) {
-                let ox = Math.random() * (WORLD_WIDTH - 600) + 300;
-                let oy = Math.random() * (WORLD_HEIGHT - 600) + 300;
-                if (Math.hypot(ox - WORLD_WIDTH/2, oy - WORLD_HEIGHT/2) > 400) {
+            for (let i = 0; i < 100; i++) {
+                let ox = Math.random() * (WORLD_WIDTH - 800) + 400;
+                let oy = Math.random() * (WORLD_HEIGHT - 800) + 400;
+                if (Math.hypot(ox - WORLD_WIDTH/2, oy - WORLD_HEIGHT/2) > 500) {
                     obstacles.push({
                         x: ox,
                         y: oy,
-                        width: Math.random() * 120 + 80,
-                        height: Math.random() * 120 + 80
+                        width: Math.random() * 140 + 90,
+                        height: Math.random() * 140 + 90
                     });
                 }
             }
 
-            // Spawn only a few green obstacles (pure decoration, NO bounce)
-            for (let i = 0; i < 8; i++) {
-                let gx = Math.random() * (WORLD_WIDTH - 600) + 300;
-                let gy = Math.random() * (WORLD_HEIGHT - 600) + 300;
-                greenDecos.push({
-                    x: gx,
-                    y: gy,
-                    width: Math.random() * 80 + 60,
-                    height: Math.random() * 80 + 60
-                });
+            repairStations.push({ x: 1500, y: 1500, width: 140, height: 100 });
+            repairStations.push({ x: WORLD_WIDTH - 1800, y: WORLD_HEIGHT - 1800, width: 140, height: 100 });
+            repairStations.push({ x: WORLD_WIDTH / 2 - 70, y: 1500, width: 140, height: 100 });
+            repairStations.push({ x: WORLD_WIDTH / 2 - 70, y: WORLD_HEIGHT - 1600, width: 140, height: 100 });
+
+            for (let i = 0; i < 30; i++) {
+                let cx = Math.random() * (WORLD_WIDTH - 1000) + 500;
+                let cy = Math.random() * (WORLD_HEIGHT - 1000) + 500;
+                if (Math.hypot(cx - WORLD_WIDTH/2, cy - WORLD_HEIGHT/2) > 400) {
+                    rollingCircles.push({
+                        x: cx,
+                        y: cy,
+                        radius: 45 + Math.random() * 30,
+                        vx: 0,
+                        vy: 0,
+                        rotation: Math.random() * Math.PI * 2,
+                        rotSpeed: 0,
+                        color: '#0066cc'
+                    });
+                }
             }
 
-            gasStations.push({ x: 1200, y: 1200, width: 140, height: 100 });
-            gasStations.push({ x: WORLD_WIDTH - 1400, y: WORLD_HEIGHT - 1400, width: 140, height: 100 });
+            // Fliehende feindliche Autos (Rot, laufen weg und explodieren)
+            for (let i = 0; i < 25; i++) {
+                let ex = Math.random() * (WORLD_WIDTH - 1000) + 500;
+                let ey = Math.random() * (WORLD_HEIGHT - 1000) + 500;
+                if (Math.hypot(ex - WORLD_WIDTH/2, ey - WORLD_HEIGHT/2) > 600) {
+                    runningEnemies.push({
+                        x: ex,
+                        y: ey,
+                        width: 36,
+                        height: 66,
+                        angle: Math.random() * Math.PI * 2,
+                        speed: 0,
+                        maxSpeed: 6.5,
+                        alive: true
+                    });
+                }
+            }
         }
 
         function showNotification(text) {
@@ -290,9 +385,14 @@
             startEngineSound();
             generateWorldItems();
             money = 200;
-            fuel = 100;
-            currentDriftPoints = 0;
-            totalDriftScore = 0;
+            damage = 0;
+            skillPoints = 0;
+            boostActive = false;
+            boostTimer = 0;
+            collisionCooldown = 0;
+            currentDriftTicks = 0;
+            wasDrifting = false;
+            explosionParticles = [];
             player.x = WORLD_WIDTH / 2;
             player.y = WORLD_HEIGHT / 2;
             player.speed = 0;
@@ -306,10 +406,11 @@
             gameState = 'PLAYING';
         }
 
-        function triggerGameOver(reason) {
+        function triggerGameOver(reason, isExplosion = false) {
             gameState = 'GAMEOVER';
             stopEngineSound();
             hud.classList.add('hidden');
+            gameOverTitle.innerText = isExplosion ? "EXPLOSION!" : "GAME OVER";
             gameOverReason.innerText = reason;
             gameOverScreen.classList.remove('hidden');
         }
@@ -317,28 +418,30 @@
         function updateGame() {
             if (gameState !== 'PLAYING') return;
 
-            if (Math.abs(player.speed) > 0.2) {
-                fuel -= 0.008;
-                if (fuel <= 0) {
-                    fuel = 0;
-                    triggerGameOver('Dein Tank ist leer!');
+            if (collisionCooldown > 0) collisionCooldown--;
+
+            if (boostActive) {
+                boostTimer--;
+                if (boostTimer <= 0) {
+                    boostActive = false;
                 }
             }
 
-            // Acceleration & Braking
+            let effectiveMaxSpeed = boostActive ? player.maxSpeed * 1.8 : player.maxSpeed;
+            let effectiveAccel = boostActive ? player.accel * 2.5 : player.accel;
+
             if (keys.up) {
-                player.speed += player.accel;
-                if (player.speed > player.maxSpeed) player.speed = player.maxSpeed;
+                player.speed += effectiveAccel;
+                if (player.speed > effectiveMaxSpeed) player.speed = effectiveMaxSpeed;
             } else if (keys.down || keys.drift) {
-                player.speed -= player.accel * 1.2;
-                if (player.speed < -player.maxSpeed / 3) player.speed = -player.maxSpeed / 3;
+                player.speed -= effectiveAccel * 1.2;
+                if (player.speed < -effectiveMaxSpeed / 3) player.speed = -effectiveMaxSpeed / 3;
             } else {
                 if (player.speed > 0) player.speed -= player.friction;
                 if (player.speed < 0) player.speed += player.friction;
                 if (Math.abs(player.speed) < 0.1) player.speed = 0;
             }
 
-            // Steering, Drifting & Wide Radius Curve Physics
             if (Math.abs(player.speed) > 0.4) {
                 let steeringSpeed = 0.038 * (Math.abs(player.speed) / player.maxSpeed);
                 
@@ -352,7 +455,7 @@
                 }
 
                 if (keys.drift) {
-                    player.driftFactor = 0.992; // Very high inertia for wide, smooth arcs
+                    player.driftFactor = 0.992;
                     if (keys.left || keys.right) {
                         player.spinRate += (keys.left ? -0.02 : 0.02);
                     }
@@ -361,9 +464,6 @@
                     player.spinRate *= 0.92;
                 }
 
-                player.spinRate = Math.max(-0.12, Math.min(0.12, player.spinRate));
-                player.angle += player.spinRate;
-
                 let angleDiff = player.angle - player.velocityAngle;
                 while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
                 while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
@@ -371,87 +471,270 @@
                 player.velocityAngle += angleDiff * (1 - player.driftFactor);
 
                 let driftSlip = Math.abs(angleDiff) + Math.abs(player.spinRate);
-                if (driftSlip > 0.2 && Math.abs(player.speed) > 3) {
-                    let earned = Math.floor(Math.abs(player.speed) * driftSlip * 3);
-                    currentDriftPoints += earned;
-                    totalDriftScore += earned;
+                let isCurrentlyDrifting = (driftSlip > 0.15 || keys.drift) && Math.abs(player.speed) > 3;
 
-                    smokeParticles.push({
-                        x: player.x - Math.sin(player.angle) * 25,
-                        y: player.y + Math.cos(player.angle) * 25,
-                        size: Math.random() * 8 + 8,
-                        alpha: 0.7,
-                        life: 30
-                    });
-                } else if (currentDriftPoints > 50) {
-                    let cashBonus = Math.floor(currentDriftPoints / 90);
-                    if (cashBonus > 0) {
-                        money += cashBonus;
-                        playCashSound();
-                        showNotification(`Spin/Drift Bonus! +$${cashBonus}`);
+                if (skillPoints < 100) {
+                    if (isCurrentlyDrifting) {
+                        currentDriftTicks++;
+                        wasDrifting = true;
+                    } else {
+                        if (wasDrifting) {
+                            if (currentDriftTicks >= 60) {
+                                skillPoints = Math.min(100, skillPoints + 10);
+                                playCashSound();
+                                showNotification('Drift (>= 1s) beendet! +10 Skill-Punkte');
+                            }
+                            currentDriftTicks = 0;
+                            wasDrifting = false;
+                        }
                     }
-                    currentDriftPoints = 0;
                 } else {
-                    currentDriftPoints = 0;
+                    currentDriftTicks = 0;
+                    wasDrifting = false;
                 }
+
+                player.spinRate = Math.max(-0.12, Math.min(0.12, player.spinRate));
+                player.angle += player.spinRate;
             } else {
                 player.velocityAngle = player.angle;
                 player.spinRate *= 0.8;
-                currentDriftPoints = 0;
+                if (wasDrifting && skillPoints < 100) {
+                    if (currentDriftTicks >= 60) {
+                        skillPoints = Math.min(100, skillPoints + 10);
+                        playCashSound();
+                        showNotification('Drift (>= 1s) beendet! +10 Skill-Punkte');
+                    }
+                    currentDriftTicks = 0;
+                    wasDrifting = false;
+                }
             }
 
             let nextX = player.x + Math.sin(player.velocityAngle) * player.speed;
-        let nextY = player.y - Math.cos(player.velocityAngle) * player.speed;
+            let nextY = player.y - Math.cos(player.velocityAngle) * player.speed;
 
-        // Collision Check for Obstacles and Green Decos
-        let collided = false;
-        let hitObject = null;
-
-        // Check against old buildings/obstacles
-        for (let obs of obstacles) {
-            if (nextX > obs.x - player.width/2 && nextX < obs.x + obs.width + player.width/2 &&
-                nextY > obs.y - player.height/2 && nextY < obs.y + obs.height + player.height/2) {
-                collided = true;
-                hitObject = obs;
-                break;
-            }
-        }
-
-        // Check against green decorations
-        if (!collided) {
-            for (let dec of greenDecos) {
-                if (nextX > dec.x - player.width/2 && nextX < dec.x + dec.width + player.width/2 &&
-                    nextY > dec.y - player.height/2 && nextY < dec.y + dec.height + player.height/2) {
-                    collided = true;
-                    hitObject = dec;
-                    break;
-                }
-            }
-        }
-
-        if (collided) {
-            // Bounce effect: reverse speed and reduce it
-            player.speed = -player.speed * 0.4;
-            // Push player slightly back to prevent getting stuck inside
-            nextX = player.x;
-            nextY = player.y;
-            showNotification('Kollision!');
-        }
-
-        // Gas Station
-        for (let gs of gasStations) {
-                let dist = Math.hypot(nextX - (gs.x + gs.width/2), nextY - (gs.y + gs.height/2));
-                if (dist < 80) {
-                    if (fuel < 95 && money >= 25) {
-                        money -= 25;
-                        fuel = 100;
-                        playCashSound();
-                        showNotification('Vollgetankt! (-$25)');
+            const borderPadding = 60;
+            if (nextX < borderPadding || nextX > WORLD_WIDTH - borderPadding ||
+                nextY < borderPadding || nextY > WORLD_HEIGHT - borderPadding) {
+                player.speed = -player.speed * 0.4;
+                nextX = player.x;
+                nextY = player.y;
+                if (collisionCooldown === 0) {
+                    damage++;
+                    collisionCooldown = 40;
+                    if (damage >= 5) {
+                        playExplosionSound();
+                        for(let i=0; i<60; i++) {
+                            explosionParticles.push({
+                                x: player.x,
+                                y: player.y,
+                                vx: (Math.random() - 0.5) * 12,
+                                vy: (Math.random() - 0.5) * 12,
+                                size: Math.random() * 8 + 4,
+                                color: Math.random() > 0.5 ? '#f97316' : '#ef4444',
+                                life: 50
+                            });
+                        }
+                        setTimeout(() => {
+                            triggerGameOver('Du bist gegen die GrenzMauer gekracht!', true);
+                        }, 1000);
+                    } else {
+                        showNotification('Grenz-Kollision!');
                     }
                 }
             }
 
-            // Coin Pickups (Gray Circles)
+            let collided = false;
+            for (let obs of obstacles) {
+                if (nextX > obs.x - player.width/2 && nextX < obs.x + obs.width + player.width/2 &&
+                    nextY > obs.y - player.height/2 && nextY < obs.y + obs.height + player.height/2) {
+                    collided = true;
+                    break;
+                }
+            }
+
+            if (collided) {
+                player.speed = -player.speed * 0.3;
+                nextX = player.x;
+                nextY = player.y;
+
+                if (collisionCooldown === 0) {
+                    damage++;
+                    collisionCooldown = 40;
+
+                    if (damage >= 5) {
+                        playExplosionSound();
+                        for(let i=0; i<60; i++) {
+                            explosionParticles.push({
+                                x: player.x,
+                                y: player.y,
+                                vx: (Math.random() - 0.5) * 12,
+                                vy: (Math.random() - 0.5) * 12,
+                                size: Math.random() * 8 + 4,
+                                color: Math.random() > 0.5 ? '#f97316' : '#ef4444',
+                                life: 50
+                            });
+                        }
+                        setTimeout(() => {
+                            triggerGameOver('Dein Auto ist explodiert!', true);
+                        }, 1000);
+                    } else {
+                        showNotification('Kollision!');
+                    }
+                }
+            }
+
+            // Physik für fliehende Gegner (laufen vor dir weg, wenn nah, und explodieren bei Berührung)
+            for (let i = runningEnemies.length - 1; i >= 0; i--) {
+                let en = runningEnemies[i];
+                if (!en.alive) continue;
+
+                let distToPlayer = Math.hypot(nextX - en.x, nextY - en.y);
+                if (distToPlayer < 450) { // Sichtweite: Flieht vor dir
+                    let escapeAngle = Math.atan2(en.y - nextY, en.x - nextX);
+                    en.angle = escapeAngle + Math.PI / 2;
+                    en.speed = en.maxSpeed;
+
+                    en.x += Math.sin(en.angle) * en.speed * 0.5; // Flieht weg
+                    en.y -= Math.cos(en.angle) * en.speed * 0.5;
+                } else {
+                    // Patrouilliert langsam, wenn du weit weg bist
+                    en.speed = 1.5;
+                    en.y -= Math.cos(en.angle) * en.speed;
+                    en.x += Math.sin(en.angle) * en.speed;
+                }
+
+                // Begrenzung für Feinde
+                if (en.x < 100 || en.x > WORLD_WIDTH - 100 || en.y < 100 || en.y > WORLD_HEIGHT - 100) {
+                    en.angle += Math.PI;
+                }
+
+                // Berührung mit dem Spieler -> EXPLOSION!
+                if (distToPlayer < (player.width / 2 + en.width / 2)) {
+                    en.alive = false;
+                    playExplosionSound();
+                    money += 150;
+                    showNotification('Gegner vernichtet & explodiert! +$150');
+
+                    for (let p = 0; p < 50; p++) {
+                        explosionParticles.push({
+                            x: en.x,
+                            y: en.y,
+                            vx: (Math.random() - 0.5) * 14,
+                            vy: (Math.random() - 0.5) * 14,
+                            size: Math.random() * 10 + 4,
+                            color: Math.random() > 0.4 ? '#f97316' : '#ef4444',
+                            life: 45
+                        });
+                    }
+
+                    // Entfernen nach Explosion
+                    runningEnemies.splice(i, 1);
+                }
+            }
+
+            // Physik für rollende Kreise
+            for (let circ of rollingCircles) {
+                circ.x += circ.vx;
+                circ.y += circ.vy;
+                
+                let speedMag = Math.hypot(circ.vx, circ.vy);
+                circ.rotSpeed = speedMag / circ.radius;
+                circ.rotation += circ.rotSpeed;
+
+                circ.vx *= 0.96;
+                circ.vy *= 0.96;
+
+                const cPad = circ.radius + 20;
+                if (circ.x < cPad) { circ.x = cPad; circ.vx *= -0.8; }
+                if (circ.x > WORLD_WIDTH - cPad) { circ.x = WORLD_WIDTH - cPad; circ.vx *= -0.8; }
+                if (circ.y < cPad) { circ.y = cPad; circ.vy *= -0.8; }
+                if (circ.y > WORLD_HEIGHT - cPad) { circ.y = WORLD_HEIGHT - cPad; circ.vy *= -0.8; }
+
+                let distToPlayer = Math.hypot(nextX - circ.x, nextY - circ.y);
+                let minDist = (player.width / 2) + circ.radius;
+                if (distToPlayer < minDist) {
+                    let pushAngle = Math.atan2(circ.y - nextY, circ.x - nextX);
+                    let force = Math.max(5, Math.abs(player.speed) * 1.8);
+                    
+                    circ.vx += Math.cos(pushAngle) * force;
+                    circ.vy += Math.sin(pushAngle) * force;
+
+                    if (Math.abs(player.speed) > 2 && collisionCooldown === 0) {
+                        money += 10;
+                        playCashSound();
+                        showNotification('Kreis gerollt! +$10');
+                        collisionCooldown = 15;
+                    }
+                }
+            }
+
+            for (let i = 0; i < rollingCircles.length; i++) {
+                for (let j = i + 1; j < rollingCircles.length; j++) {
+                    let c1 = rollingCircles[i];
+                    let c2 = rollingCircles[j];
+                    let dx = c2.x - c1.x;
+                    let dy = c2.y - c1.y;
+                    let dist = Math.hypot(dx, dy);
+                    let minDist = c1.radius + c2.radius;
+                    if (dist < minDist) {
+                        let overlap = minDist - dist;
+                        let angle = Math.atan2(dy, dx);
+                        
+                        c1.x -= Math.cos(angle) * overlap * 0.5;
+                        c1.y -= Math.sin(angle) * overlap * 0.5;
+                        c2.x += Math.cos(angle) * overlap * 0.5;
+                        c2.y += Math.sin(angle) * overlap * 0.5;
+
+                        let tempVx = c1.vx;
+                        let tempVy = c1.vy;
+                        c1.vx = c2.vx * 0.85;
+                        c1.vy = c2.vy * 0.85;
+                        c2.vx = tempVx * 0.85;
+                        c2.vy = tempVy * 0.85;
+                    }
+                }
+            }
+
+            if (damage >= 1 || boostActive) {
+                let smokeChance = boostActive ? 0.9 : (0.2 + (damage * 0.15));
+                if (Math.random() < smokeChance) {
+                    smokeParticles.push({
+                        x: player.x - Math.sin(player.angle) * 25,
+                        y: player.y + Math.cos(player.angle) * 25,
+                        vx: (Math.random() - 0.5) * 0.6,
+                        vy: (Math.random() - 0.5) * 0.6,
+                        size: Math.random() * (4 + damage * 2) + (boostActive ? 8 : 4),
+                        alpha: 0.4 + (damage * 0.08),
+                        life: 20 + damage * 5
+                    });
+                }
+            }
+
+            if (damage >= 4) {
+                if (Math.random() < 0.6) {
+                    sparkParticles.push({
+                        x: player.x + (Math.random() - 0.5) * 20,
+                        y: player.y + (Math.random() - 0.5) * 20,
+                        vx: (Math.random() - 0.5) * 9,
+                        vy: (Math.random() - 0.5) * 9,
+                        size: Math.random() * 3 + 1,
+                        life: 15
+                    });
+                }
+            }
+
+            for (let rs of repairStations) {
+                let dist = Math.hypot(nextX - (rs.x + rs.width/2), nextY - (rs.y + rs.height/2));
+                if (dist < 80) {
+                    if (damage > 0 && money >= 35) {
+                        money -= 35;
+                        damage = 0;
+                        playCashSound();
+                        showNotification('Repariert! (-$35)');
+                    }
+                }
+            }
+
             for (let cp of cashPickups) {
                 if (!cp.collected) {
                     let dist = Math.hypot(nextX - cp.x, nextY - cp.y);
@@ -464,32 +747,48 @@
                 }
             }
 
-            // Smoke Particles
             for (let i = smokeParticles.length - 1; i >= 0; i--) {
                 let p = smokeParticles[i];
+                p.x += p.vx;
+                p.y += p.vy;
                 p.life--;
-                p.size += 0.4;
+                p.size += 0.35;
                 p.alpha -= 0.02;
                 if (p.life <= 0 || p.alpha <= 0) {
                     smokeParticles.splice(i, 1);
                 }
             }
 
+            for (let i = sparkParticles.length - 1; i >= 0; i--) {
+                let p = sparkParticles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life--;
+                if (p.life <= 0) {
+                    sparkParticles.splice(i, 1);
+                }
+            }
+
+            for (let i = explosionParticles.length - 1; i >= 0; i--) {
+                let p = explosionParticles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life--;
+                p.size *= 0.95;
+                if (p.life <= 0) {
+                    explosionParticles.splice(i, 1);
+                }
+            }
+
             player.x = nextX;
             player.y = nextY;
 
-            // World Borders Wrap
-            if (player.x < 0) player.x = WORLD_WIDTH;
-            if (player.x > WORLD_WIDTH) player.x = 0;
-            if (player.y < 0) player.y = WORLD_HEIGHT;
-            if (player.y > WORLD_HEIGHT) player.y = 0;
-
             updateEnginePitch(Math.abs(player.speed) / player.maxSpeed);
 
-            fuelBar.style.width = fuel + '%';
+            skillVal.innerText = skillPoints + ' / 100';
+            boostVal.innerText = boostActive ? 'AKTIV (' + Math.ceil(boostTimer/60) + 's)' : (skillPoints >= 100 ? 'BEREIT (SHIFT)' : 'LÄDT...');
             moneyVal.innerText = '$' + money;
             speedVal.innerText = Math.floor(Math.abs(player.speed) * 16) + ' KM/H';
-            driftVal.innerText = currentDriftPoints + ' PTS';
         }
 
         function renderGame() {
@@ -500,14 +799,16 @@
             let camY = canvas.height / 2 - player.y;
             ctx.translate(camX, camY);
 
-            // Gray Asphalt Background
-            ctx.fillStyle = '#1f2937';
+            ctx.fillStyle = '#1e293b';
             ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
-            // Grid Lines
-            ctx.strokeStyle = '#374151';
+            ctx.strokeStyle = '#0ea5e9';
+            ctx.lineWidth = 14;
+            ctx.strokeRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+            ctx.strokeStyle = '#334155';
             ctx.lineWidth = 2;
-            const gridSize = 400;
+            const gridSize = 500;
             for (let x = 0; x <= WORLD_WIDTH; x += gridSize) {
                 ctx.beginPath();
                 ctx.moveTo(x, 0);
@@ -521,45 +822,65 @@
                 ctx.stroke();
             }
 
-            // Gas Stations
-            for (let gs of gasStations) {
-                ctx.fillStyle = '#4b5563';
-                ctx.fillRect(gs.x, gs.y, gs.width, gs.height);
-                ctx.fillStyle = '#f3f4f6';
-                ctx.font = '12px sans-serif';
-                ctx.fillText('TANKSTELLE', gs.x + 15, gs.y + 55);
+            for (let rs of repairStations) {
+                ctx.fillStyle = '#475569';
+                ctx.fillRect(rs.x, rs.y, rs.width, rs.height);
+                ctx.fillStyle = '#f8fafc';
+                ctx.font = '12px monospace';
+                ctx.fillText('WERKSTATT', rs.x + 22, rs.y + 55);
             }
 
-            // Old Building Obstacles
             for (let obs of obstacles) {
-                ctx.fillStyle = '#374151';
-                ctx.strokeStyle = '#4b5563';
-                ctx.lineWidth = 2;
+                ctx.fillStyle = '#334155';
+                ctx.strokeStyle = '#64748b';
+                ctx.lineWidth = 3;
                 ctx.beginPath();
-                ctx.roundRect(obs.x, obs.y, obs.width, obs.height, 6);
+                ctx.roundRect(obs.x, obs.y, obs.width, obs.height, 8);
                 ctx.fill();
                 ctx.stroke();
             }
 
-            // Few Green Decorations (No bounce)
-            for (let dec of greenDecos) {
-                ctx.fillStyle = '#065f46';
-                ctx.strokeStyle = '#10b981';
-                ctx.lineWidth = 2;
+            // Rendere rollende blaue Kreise
+            for (let circ of rollingCircles) {
+                ctx.save();
+                ctx.translate(circ.x, circ.y);
+                ctx.rotate(circ.rotation);
+
+                ctx.fillStyle = circ.color;
                 ctx.beginPath();
-                ctx.roundRect(dec.x, dec.y, dec.width, dec.height, 8);
+                ctx.arc(0, 0, circ.radius, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.stroke();
+
+                ctx.restore();
             }
 
-            // Coin Pickups (Pure Gray Circles)
+            // Rendere fliehende Gegner (Rot)
+            for (let en of runningEnemies) {
+                if (!en.alive) continue;
+                ctx.save();
+                ctx.translate(en.x, en.y);
+                ctx.rotate(en.angle);
+
+                ctx.fillStyle = '#ef4444';
+                ctx.shadowColor = '#dc2626';
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.roundRect(-en.width / 2, -en.height / 2, en.width, en.height, 8);
+                ctx.fill();
+
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(-en.width / 2 + 4, -en.height / 4, en.width - 8, en.height / 2.5);
+
+                ctx.restore();
+            }
+
             for (let cp of cashPickups) {
                 if (!cp.collected) {
                     ctx.save();
                     ctx.translate(cp.x, cp.y);
-                    ctx.fillStyle = '#9ca3af';
-                    ctx.shadowColor = '#d1d5db';
-                    ctx.shadowBlur = 10;
+                    ctx.fillStyle = '#34d399';
+                    ctx.shadowColor = '#10b981';
+                    ctx.shadowBlur = 12;
                     ctx.beginPath();
                     ctx.arc(0, 0, 14, 0, Math.PI * 2);
                     ctx.fill();
@@ -567,31 +888,44 @@
                 }
             }
 
-            // Smoke Particles
             for (let p of smokeParticles) {
-                ctx.fillStyle = `rgba(150, 150, 150, ${p.alpha})`;
+                ctx.fillStyle = `rgba(148, 163, 184, ${p.alpha})`;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
                 ctx.fill();
             }
 
-            // Player Car
-            ctx.save();
-            ctx.translate(player.x, player.y);
-            ctx.rotate(player.angle);
+            for (let p of sparkParticles) {
+                ctx.fillStyle = '#fbbf24';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
 
-            ctx.shadowColor = '#9ca3af';
-            ctx.shadowBlur = 15;
-            ctx.fillStyle = player.color;
-            ctx.beginPath();
-            ctx.roundRect(-player.width / 2, -player.height / 2, player.width, player.height, 8);
-            ctx.fill();
+            if (gameState === 'PLAYING' || explosionParticles.length > 0) {
+                ctx.save();
+                ctx.translate(player.x, player.y);
+                ctx.rotate(player.angle);
 
-            // Windshield
-            ctx.fillStyle = '#111827';
-            ctx.fillRect(-player.width / 2 + 5, -player.height / 4, player.width - 10, player.height / 2.5);
+                ctx.shadowColor = boostActive ? '#22d3ee' : '#38bdf8';
+                ctx.shadowBlur = boostActive ? 30 : 16;
+                ctx.fillStyle = boostActive ? '#22d3ee' : player.color;
+                ctx.beginPath();
+                ctx.roundRect(-player.width / 2, -player.height / 2, player.width, player.height, 8);
+                ctx.fill();
 
-            ctx.restore();
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(-player.width / 2 + 5, -player.height / 4, player.width - 10, player.height / 2.5);
+
+                ctx.restore();
+            }
+
+            for (let p of explosionParticles) {
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
 
             ctx.restore();
         }
